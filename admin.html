@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#030014" />
+<title>LUX J'Ouvert × Blackout · Band Rep Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+:root {
+  --ink: #030014; --cosmic: #0B0216; --royal: #1A0B2E;
+  --gold: #FFC857; --orange: #FF6B35;
+  --pink-hot: #FF3CAC; --magenta: #E11D74;
+  --cyan: #00F0FF; --lime: #C7FF3C;
+  --neon-pink: #FF2BB1; --neon-orange: #FF9626;
+  --purple: #7B2CBF; --neon-purple: #9D4EDD;
+  --white: #fff; --muted: rgba(255,255,255,0.6); --muted-strong: rgba(255,255,255,0.82);
+  --border: rgba(255,255,255,0.08); --border-pink: rgba(255,60,172,0.3);
+  --border-cyan: rgba(0,240,255,0.25);
+  --grad-cta: linear-gradient(90deg, #FF3CAC 0%, #FF6B35 100%);
+  --font-display: 'Unbounded', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--ink);
+  color: var(--white);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 15% 0%, rgba(123,44,191,0.15), transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(255,107,53,0.12), transparent 55%);
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1500px; margin: 0 auto; padding: 40px 24px 80px; }
+
+header.bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 24px; border-bottom: 1px solid var(--border);
+  margin-bottom: 32px; gap: 20px; flex-wrap: wrap;
+}
+.brand { font-family: var(--font-display); font-weight: 900; font-size: 22px; }
+.brand .lux { background: linear-gradient(135deg, var(--pink-hot), var(--orange), var(--cyan)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.brand .sub { font-size: 11px; color: var(--muted); letter-spacing: .3em; margin-left: 10px; text-transform: uppercase; font-weight: 700; }
+
+.rep-chip {
+  padding: 8px 16px; border-radius: 999px;
+  background: rgba(255,60,172,0.08);
+  border: 1px solid var(--border-pink);
+  font-size: 13px; color: var(--pink-hot); font-weight: 700;
+}
+
+h1 {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -.02em; margin-bottom: 4px;
+}
+.lede { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
+
+/* KPI cards */
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .kpis { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  padding: 20px 22px; border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+}
+.kpi .lbl { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.kpi .val { font-family: var(--font-display); font-weight: 900; font-size: clamp(26px, 3vw, 36px); margin-top: 8px; letter-spacing: -.02em; }
+.kpi.pending { border-color: rgba(255,107,53,0.35); }
+.kpi.pending .val { color: var(--orange); }
+.kpi.paid .val { color: var(--lime); }
+.kpi.cancelled .val { color: var(--magenta); }
+.kpi.jouvert { border-color: var(--border-pink); }
+.kpi.jouvert .val { color: var(--pink-hot); }
+.kpi.blackout { border-color: var(--border-cyan); }
+.kpi.blackout .val { color: var(--cyan); }
+
+/* Toolbar */
+.toolbar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  padding: 14px; border: 1px solid var(--border); border-radius: 14px;
+  background: rgba(255,255,255,0.02); margin-bottom: 18px; align-items: center;
+}
+.toolbar input, .toolbar select {
+  padding: 10px 12px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--white); font-size: 14px; font-family: var(--font-body);
+  min-width: 180px; flex: 1;
+}
+.toolbar input:focus, .toolbar select:focus { outline: none; border-color: var(--pink-hot); }
+.toolbar .count { font-size: 13px; color: var(--muted); margin-left: auto; padding: 0 12px; }
+
+.btn-sm {
+  padding: 8px 14px; border-radius: 999px;
+  font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  font-weight: 700; transition: transform .15s, box-shadow .15s;
+  white-space: nowrap; cursor: pointer; border: 0;
+}
+.btn-sm:hover { transform: translateY(-1px); }
+.btn-paid { background: var(--lime); color: var(--ink); box-shadow: 0 4px 12px rgba(199,255,60,0.2); }
+.btn-cancel { background: rgba(225,29,116,0.1); color: var(--magenta); border: 1px solid rgba(225,29,116,0.3); }
+.btn-view { background: rgba(255,255,255,0.06); color: var(--white); border: 1px solid var(--border); }
+
+/* Table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 16px; background: rgba(0,0,0,0.25); }
+table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+thead th {
+  text-align: left; padding: 14px 16px;
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted); font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  position: sticky; top: 0; z-index: 2;
+}
+tbody td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:hover { background: rgba(255,60,172,0.04); }
+.id-cell { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--pink-hot); letter-spacing: .04em; white-space: nowrap; }
+.small { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.event-tag {
+  display: inline-block; padding: 4px 10px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  font-family: var(--font-display);
+}
+.event-tag.jouvert { background: rgba(255,107,53,0.12); color: var(--orange); border: 1px solid rgba(255,107,53,0.3); }
+.event-tag.blackout { background: rgba(0,240,255,0.1); color: var(--cyan); border: 1px solid var(--border-cyan); }
+
+.chip {
+  display: inline-block; padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.chip.pending { background: rgba(255,107,53,0.12); color: var(--orange); border: 1px solid rgba(255,107,53,0.3); }
+.chip.paid { background: rgba(199,255,60,0.12); color: var(--lime); border: 1px solid rgba(199,255,60,0.3); }
+.chip.cancelled { background: rgba(225,29,116,0.12); color: var(--magenta); border: 1px solid rgba(225,29,116,0.3); }
+
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.empty {
+  padding: 60px 20px; text-align: center;
+  color: var(--muted);
+}
+.empty h3 { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--white); margin-bottom: 8px; }
+
+/* Detail modal */
+.modal-bd {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.78); backdrop-filter: blur(10px);
+  display: none; place-items: center; padding: 20px;
+}
+.modal-bd.open { display: grid; }
+.modal {
+  background: var(--cosmic); border: 1px solid var(--border-pink);
+  border-radius: 20px; padding: 32px 28px;
+  max-width: 580px; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal h3 { font-family: var(--font-display); font-weight: 800; font-size: 24px; margin-bottom: 4px; }
+.modal .res-id { color: var(--pink-hot); font-family: var(--font-display); letter-spacing: .04em; font-size: 13px; margin-bottom: 8px; }
+.modal-event-strip { margin: 4px 0 18px; }
+
+.section-divider {
+  margin: 18px 0 8px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+  color: var(--gold);
+}
+.row { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px dashed rgba(255,255,255,0.06); font-size: 14px; gap: 10px; }
+.row:first-of-type { border-top: 0; }
+.row .k { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; min-width: 110px; }
+.row .v { text-align: right; max-width: 60%; }
+
+.modal-actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; justify-content: flex-end; }
+.btn-md { padding: 12px 20px; border-radius: 999px; font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; border: 0; }
+.btn-confirm { background: linear-gradient(135deg, var(--lime), #A5E82A); color: var(--ink); }
+.btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--white); }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(3,0,20,0.95); border: 1px solid var(--border-pink);
+  padding: 14px 22px; border-radius: 999px;
+  backdrop-filter: blur(10px);
+  font-size: 13px; color: var(--white);
+  opacity: 0; transition: opacity .3s, transform .3s;
+  z-index: 200;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.gate {
+  max-width: 420px; margin: 10vh auto; padding: 40px 32px;
+  background: var(--cosmic); border: 1px solid var(--border-pink);
+  border-radius: 20px; text-align: center;
+}
+.gate h2 { font-family: var(--font-display); font-size: 28px; margin-bottom: 8px; font-weight: 900; }
+.gate p { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+.gate input {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--white); font-size: 15px; margin-bottom: 12px;
+  font-family: var(--font-body);
+}
+.gate input:focus { outline: none; border-color: var(--pink-hot); }
+.gate button {
+  width: 100%; padding: 14px; border-radius: 999px;
+  background: var(--grad-cta);
+  color: var(--ink); font-family: var(--font-display); font-weight: 700;
+  font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
+  border: 0; cursor: pointer;
+}
+.gate .hint { font-size: 11px; color: var(--muted); margin-top: 14px; letter-spacing: .05em; }
+
+#appRoot { display: none; }
+#appRoot.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <h2>Band Rep Sign In</h2>
+  <p>Sign in with your Lux admin account to manage cash reservations.</p>
+  <input type="email" id="gateEmail" placeholder="support@luxjouvert.com" autocomplete="username" />
+  <input type="password" id="gatePass" placeholder="Password" autocomplete="current-password" />
+  <button id="gateBtn">Sign In</button>
+  <div class="hint" id="gateHint">Admin: <b style="color:var(--pink-hot)">support@luxjouvert.com</b> · Default password: <b style="color:var(--gold)">lux2027!admin</b></div>
+</div>
+
+<div id="appRoot">
+<div class="wrap">
+
+<header class="bar">
+  <div class="brand">
+    <span class="lux">LUX</span> J'OUVERT × BLACKOUT
+    <span class="sub">Band Rep Console</span>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <div class="rep-chip" id="repChip">● Online</div>
+    <button class="btn-sm btn-view" id="signOutBtn">Sign Out</button>
+  </div>
+</header>
+
+<h1>Cash Reservations</h1>
+<div class="lede">Confirm cash payments. Send proof-of-purchase. Track the band's road to Monday.</div>
+
+<section class="kpis">
+  <div class="kpi pending">
+    <div class="lbl">Pending Payment</div>
+    <div class="val" id="kpiPending">0</div>
+  </div>
+  <div class="kpi paid">
+    <div class="lbl">Paid</div>
+    <div class="val" id="kpiPaid">0</div>
+  </div>
+  <div class="kpi jouvert">
+    <div class="lbl">J'Ouvert Reg.</div>
+    <div class="val" id="kpiJouvert">0</div>
+  </div>
+  <div class="kpi blackout">
+    <div class="lbl">Blackout Reg.</div>
+    <div class="val" id="kpiBlackout">0</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Collected (TTD)</div>
+    <div class="val" id="kpiTotal" style="color: var(--gold);">$0</div>
+  </div>
+</section>
+
+<div class="toolbar">
+  <input type="search" id="search" placeholder="Search ID, name, email, area, or rep…" />
+  <select id="filterStatus">
+    <option value="">All statuses</option>
+    <option value="PENDING_PAYMENT">Pending</option>
+    <option value="PAID">Paid</option>
+    <option value="CANCELLED">Cancelled</option>
+  </select>
+  <select id="filterEvent">
+    <option value="">Both events</option>
+    <option value="jouvert">LUX J'Ouvert</option>
+    <option value="blackout">Blackout</option>
+  </select>
+  <select id="filterRep">
+    <option value="">All reps</option>
+  </select>
+  <button class="btn-sm btn-view" id="exportCsv">Export CSV</button>
+  <div class="count" id="countLabel">0 reservations</div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Reservation</th>
+        <th>Masquerader</th>
+        <th>Event</th>
+        <th>Package</th>
+        <th>Total</th>
+        <th>Area</th>
+        <th>Rep</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="empty" id="empty" style="display: none;">
+    <h3>No reservations yet.</h3>
+    <div>Share the site link. Reservations will appear here as masqueraders sign up.</div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<div class="modal-bd" id="modalBd">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Gate ----------
+  // Demo-mode admin auth using a SHA-256 hashed password. The default below is
+  // the hash of 'lux2027!admin' — CHANGE THIS BEFORE GOING PUBLIC.
+  // To generate your own:  printf '%s' 'YourNewPassword' | sha256sum
+  // Or swap to Firebase Auth with a custom admin claim for real production
+  // (see README → "Production upgrade — Firebase").
+  const ADMIN_EMAIL = 'support@luxjouvert.com';
+  const ADMIN_PASS_HASH = 'fd2e1446a6e13dd19941d1e3115fb538b26261e4163696fb87dd23bcd55722b8'; // 'lux2027!admin'
+  // Fallback hashes accepted in addition to the main one — useful if you rotate
+  // and want the old password to still work for a grace period.
+  const FALLBACK_PASS_HASHES = [
+    // SHA-256 of 'lux2027' — keeps the original demo passcode working
+    'c43cd17767633ea927e6cfb7a7fcbfb5944f11d6cf5881cfb808fceaf3b9ec78'
+  ];
+
+  const gate = document.getElementById('gate');
+  const app  = document.getElementById('appRoot');
+  const gateEmailEl = document.getElementById('gateEmail');
+  const gatePassEl  = document.getElementById('gatePass');
+  document.getElementById('gateBtn').addEventListener('click', enter);
+  [gateEmailEl, gatePassEl].forEach(el => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') enter(); }));
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function enter() {
+    const email = gateEmailEl.value.trim().toLowerCase();
+    const pass  = gatePassEl.value;
+    if (!email || !pass) { toast('Email and password required'); return; }
+    if (email !== ADMIN_EMAIL) { toast('Not an admin account'); return; }
+    const hash = await sha256(pass);
+    if (hash === ADMIN_PASS_HASH || FALLBACK_PASS_HASHES.includes(hash)) {
+      gate.style.display = 'none';
+      app.classList.add('show');
+      sessionStorage.setItem('lux_rep_in', '1');
+      sessionStorage.setItem('lux_rep_email', email);
+      render();
+    } else {
+      toast('Wrong password');
+    }
+  }
+  if (sessionStorage.getItem('lux_rep_in')) {
+    gate.style.display = 'none';
+    app.classList.add('show');
+  }
+
+  // ---------- Data ----------
+  const KEY = 'lux_reservations';
+  const load = () => JSON.parse(localStorage.getItem(KEY) || '[]');
+  const save = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
+
+  // Seed demo data once — uses the new schema (separate events, full registration fields)
+  if (load().length === 0) {
+    const demo = [
+      {
+        id: 'LUX-A1B2C3-X7Y9', createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        userEmail: 'sasha@example.com', userName: 'Sasha Ramkissoon', userPhone: '1-868-555-0201',
+        event: 'jouvert', eventName: "LUX J'Ouvert",
+        gender: 'female', address: 'San Fernando',
+        contact: '1-868-555-0201', drink: 'Hennessy & Coke',
+        emergencyContact: { name: 'Devin Ramkissoon', phone: '1-868-555-0202' },
+        tee:    { color: 'White', size: 'M' },
+        style1: { color: 'Black', size: 'M' },
+        style2: { color: 'White', size: 'M' },
+        total: 650,
+        rep: { name: 'Keisha', phone: '+1-868-555-0101', zone: 'San Fernando · POS' },
+        status: 'PAID', paidAt: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: 'LUX-D4E5F6-M3N8', createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+        userEmail: 'jahmal@example.com', userName: 'Jahmal Alleyne', userPhone: '1-868-555-0203',
+        event: 'blackout', eventName: 'Lux Blackout',
+        gender: 'male', address: 'Marabella',
+        contact: '1-868-555-0203', drink: 'Rum & Coke',
+        emergencyContact: { name: 'Kerry Alleyne', phone: '1-868-555-0204' },
+        tee: { color: 'Neon Pink', size: 'XL' },
+        total: 500,
+        rep: { name: 'Marlon', phone: '+1-868-555-0102', zone: 'South · Marabella' },
+        status: 'PENDING_PAYMENT'
+      },
+      {
+        id: 'LUX-G7H8I9-P2Q4', createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+        userEmail: 'tia@example.com', userName: 'Tia Mohammed', userPhone: '1-868-555-0205',
+        event: 'jouvert', eventName: "LUX J'Ouvert",
+        gender: 'male', address: 'Chaguanas',
+        contact: '1-868-555-0205', drink: 'Vodka & Cranberry',
+        emergencyContact: { name: 'Anika Mohammed', phone: '1-868-555-0206' },
+        tee: { color: 'Black', size: 'L' },
+        total: 650,
+        rep: { name: 'Aaliyah', phone: '+1-868-555-0103', zone: 'Central · Chaguanas' },
+        status: 'PENDING_PAYMENT'
+      },
+      {
+        id: 'LUX-J0K1L2-R5S7', createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+        userEmail: 'kareem@example.com', userName: 'Kareem Joseph', userPhone: '1-868-555-0207',
+        event: 'blackout', eventName: 'Lux Blackout',
+        gender: 'female', address: 'Princes Town',
+        contact: '1-868-555-0207', drink: '',
+        emergencyContact: { name: 'Lisa Joseph', phone: '1-868-555-0208' },
+        tee: { color: 'Neon Orange', size: 'S' },
+        total: 500,
+        rep: { name: 'Marlon', phone: '+1-868-555-0102', zone: 'South · Marabella' },
+        status: 'PENDING_PAYMENT'
+      }
+    ];
+    save(demo);
+  }
+
+  // ---------- Filters ----------
+  const searchEl = document.getElementById('search');
+  const filterStatus = document.getElementById('filterStatus');
+  const filterEvent = document.getElementById('filterEvent');
+  const filterRep = document.getElementById('filterRep');
+  [searchEl, filterStatus, filterEvent, filterRep].forEach(el => el.addEventListener('input', render));
+
+  // ---------- Render ----------
+  function render() {
+    const all = load();
+
+    // Populate rep filter
+    const reps = Array.from(new Set(all.map(r => r.rep?.name).filter(Boolean))).sort();
+    const currentRep = filterRep.value;
+    filterRep.innerHTML = '<option value="">All reps</option>' + reps.map(n => `<option${n === currentRep ? ' selected' : ''}>${n}</option>`).join('');
+
+    // KPIs
+    const pending = all.filter(r => r.status === 'PENDING_PAYMENT');
+    const paid    = all.filter(r => r.status === 'PAID');
+    const jouvert = all.filter(r => r.event === 'jouvert');
+    const blackout= all.filter(r => r.event === 'blackout');
+    const total   = paid.reduce((a, r) => a + (r.total || 0), 0);
+    document.getElementById('kpiPending').textContent  = pending.length;
+    document.getElementById('kpiPaid').textContent     = paid.length;
+    document.getElementById('kpiJouvert').textContent  = jouvert.length;
+    document.getElementById('kpiBlackout').textContent = blackout.length;
+    document.getElementById('kpiTotal').textContent    = '$' + total.toLocaleString();
+
+    // Filter
+    const q = searchEl.value.trim().toLowerCase();
+    const fs = filterStatus.value, fe = filterEvent.value, fr = filterRep.value;
+    const rows = all.filter(r => {
+      if (fs && r.status !== fs) return false;
+      if (fe && r.event !== fe) return false;
+      if (fr && r.rep?.name !== fr) return false;
+      if (q) {
+        const hay = [r.id, r.userName, r.userEmail, r.rep?.name, r.userPhone, r.address].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    document.getElementById('countLabel').textContent = rows.length + ' reservation' + (rows.length !== 1 ? 's' : '');
+
+    const tbody = document.getElementById('tbody');
+    const empty = document.getElementById('empty');
+    if (rows.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = rows.map(r => `
+      <tr data-id="${r.id}">
+        <td>
+          <div class="id-cell">${r.id}</div>
+          <div class="small">${new Date(r.createdAt).toLocaleString('en-TT', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+        </td>
+        <td>
+          <div>${escape(r.userName)}</div>
+          <div class="small">${escape(r.userEmail)} · ${escape(r.userPhone || r.contact || '—')}</div>
+        </td>
+        <td><span class="event-tag ${r.event}">${escape(r.eventName)}</span></td>
+        <td>${packageBrief(r)}</td>
+        <td style="font-weight: 600; color: var(--gold);">$${(r.total || 0).toLocaleString()}</td>
+        <td>${escape(r.address || '—')}</td>
+        <td>
+          <div>${escape(r.rep?.name || '—')}</div>
+          <div class="small">${escape(r.rep?.zone || '')}</div>
+        </td>
+        <td>${statusChipHtml(r.status)}</td>
+        <td>
+          <div class="actions">
+            <button class="btn-sm btn-view" data-view="${r.id}">Details</button>
+            ${r.status === 'PENDING_PAYMENT' ? `<button class="btn-sm btn-paid" data-paid="${r.id}">Mark Paid</button>` : ''}
+            ${r.status !== 'CANCELLED' && r.status !== 'PAID' ? `<button class="btn-sm btn-cancel" data-cancel="${r.id}">Cancel</button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => openDetail(b.dataset.view)));
+    tbody.querySelectorAll('[data-paid]').forEach(b => b.addEventListener('click', () => markPaid(b.dataset.paid)));
+    tbody.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', () => cancelRes(b.dataset.cancel)));
+  }
+
+  function packageBrief(r) {
+    const g = r.gender === 'male' ? 'M' : 'F';
+    if (r.event === 'jouvert' && r.gender === 'female') {
+      return `${g} · Tee ${r.tee?.color}/${r.tee?.size} · S1 ${r.style1?.color}/${r.style1?.size} · S2 ${r.style2?.color}/${r.style2?.size}`;
+    }
+    return `${g} · ${r.tee?.color || '—'} · ${r.tee?.size || '—'}`;
+  }
+
+  function statusChipHtml(s) {
+    if (s === 'PENDING_PAYMENT') return '<span class="chip pending">Pending</span>';
+    if (s === 'PAID') return '<span class="chip paid">Paid ✓</span>';
+    if (s === 'CANCELLED') return '<span class="chip cancelled">Cancelled</span>';
+    return s;
+  }
+  function escape(s) { return String(s ?? '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]); }
+
+  // ---------- Detail modal ----------
+  const modalBd = document.getElementById('modalBd');
+  const modalBox = document.getElementById('modalBox');
+  modalBd.addEventListener('click', (e) => { if (e.target === modalBd) modalBd.classList.remove('open'); });
+
+  function openDetail(id) {
+    const r = load().find(x => x.id === id);
+    if (!r) return;
+
+    // Build apparel block — different for J'Ouvert female (3 items) vs everything else (1 item)
+    let apparelHtml = '';
+    if (r.event === 'jouvert' && r.gender === 'female') {
+      apparelHtml = `
+        <div class="section-divider">Apparel · Female Package</div>
+        <div class="row"><span class="k">T-Shirt</span><span class="v">${escape(r.tee?.color)} · ${escape(r.tee?.size)}</span></div>
+        <div class="row"><span class="k">Style I Monokini</span><span class="v">${escape(r.style1?.color)} · ${escape(r.style1?.size)}</span></div>
+        <div class="row"><span class="k">Style II Monokini</span><span class="v">${escape(r.style2?.color)} · ${escape(r.style2?.size)}</span></div>
+      `;
+    } else {
+      const heading = r.event === 'blackout' ? 'Apparel · Neon T-Shirt' : 'Apparel · T-Shirt';
+      apparelHtml = `
+        <div class="section-divider">${heading}</div>
+        <div class="row"><span class="k">Color</span><span class="v">${escape(r.tee?.color)}</span></div>
+        <div class="row"><span class="k">Size</span><span class="v">${escape(r.tee?.size)}</span></div>
+      `;
+    }
+
+    modalBox.innerHTML = `
+      <h3>${escape(r.userName)}</h3>
+      <div class="res-id">${r.id}</div>
+      <div class="modal-event-strip">
+        <span class="event-tag ${r.event}">${escape(r.eventName)}</span>
+        ${statusChipHtml(r.status)}
+      </div>
+
+      <div class="section-divider">Masquerader</div>
+      <div class="row"><span class="k">Gender</span><span class="v">${r.gender === 'male' ? 'Male' : 'Female'}</span></div>
+      <div class="row"><span class="k">Email</span><span class="v">${escape(r.userEmail)}</span></div>
+      <div class="row"><span class="k">Phone</span><span class="v">${escape(r.contact || r.userPhone || '—')}</span></div>
+      <div class="row"><span class="k">Area</span><span class="v">${escape(r.address || '—')}</span></div>
+      <div class="row"><span class="k">Drink</span><span class="v">${escape(r.drink || '—')}</span></div>
+
+      <div class="section-divider">Emergency Contact</div>
+      <div class="row"><span class="k">Name</span><span class="v">${escape(r.emergencyContact?.name)}</span></div>
+      <div class="row"><span class="k">Phone</span><span class="v">${escape(r.emergencyContact?.phone)}</span></div>
+
+      ${apparelHtml}
+
+      <div class="section-divider">Payment</div>
+      <div class="row"><span class="k">Total (TTD)</span><span class="v" style="color:var(--gold);font-weight:700">$${(r.total || 0).toLocaleString()}</span></div>
+      <div class="row"><span class="k">Assigned Rep</span><span class="v">${escape(r.rep?.name)} · ${escape(r.rep?.zone)}</span></div>
+      <div class="row"><span class="k">Reserved</span><span class="v">${new Date(r.createdAt).toLocaleString('en-TT')}</span></div>
+      ${r.paidAt ? `<div class="row"><span class="k">Paid At</span><span class="v">${new Date(r.paidAt).toLocaleString('en-TT')}</span></div>` : ''}
+
+      <div class="modal-actions">
+        <button class="btn-md btn-ghost" data-close>Close</button>
+        ${r.status === 'PENDING_PAYMENT' ? `<button class="btn-md btn-confirm" data-confirm="${r.id}">Confirm Cash Received</button>` : ''}
+      </div>
+    `;
+    modalBd.classList.add('open');
+    modalBox.querySelector('[data-close]').addEventListener('click', () => modalBd.classList.remove('open'));
+    const conf = modalBox.querySelector('[data-confirm]');
+    if (conf) conf.addEventListener('click', () => { markPaid(r.id); modalBd.classList.remove('open'); });
+  }
+
+  function markPaid(id) {
+    const arr = load();
+    const r = arr.find(x => x.id === id);
+    if (!r) return;
+    r.status = 'PAID';
+    r.paidAt = new Date().toISOString();
+    save(arr);
+    sendProofOfPurchase(r);
+    toast(`${r.userName} paid — proof-of-purchase email queued ✓`);
+    render();
+  }
+  function cancelRes(id) {
+    if (!confirm('Cancel this reservation? The masquerader will be notified.')) return;
+    const arr = load();
+    const r = arr.find(x => x.id === id);
+    if (!r) return;
+    r.status = 'CANCELLED';
+    save(arr);
+    toast(`Reservation ${id} cancelled`);
+    render();
+  }
+
+  // Build & log a proof-of-purchase email payload (replace with SendGrid/Resend POST in prod)
+  function sendProofOfPurchase(r) {
+    let appLines;
+    if (r.event === 'jouvert' && r.gender === 'female') {
+      appLines = [
+        `T-Shirt:        ${r.tee.color} · ${r.tee.size}`,
+        `Style I:        ${r.style1.color} · ${r.style1.size}`,
+        `Style II:       ${r.style2.color} · ${r.style2.size}`
+      ];
+    } else {
+      appLines = [`Apparel:        ${r.tee.color} · ${r.tee.size}`];
+    }
+    const payload = {
+      to: r.userEmail,
+      subject: `${r.eventName} — Payment Confirmed`,
+      body: [
+        `Yow ${r.userName.split(' ')[0]},`, '',
+        `We received your cash payment from rep ${r.rep?.name}. You're locked in for Carnival Monday 2027.`, '',
+        `Reservation ID: ${r.id}`,
+        `Event:          ${r.eventName}`,
+        `Package:        ${r.gender === 'male' ? 'Male' : 'Female'}`,
+        ...appLines,
+        `Drink:          ${r.drink || '—'}`,
+        `Area:           ${r.address}`,
+        `Total Paid:     $${(r.total || 0).toLocaleString()} TTD`,
+        '',
+        `Costume pickup details will land in your inbox closer to launch. Follow @luxjouvert for band-launch dates.`,
+        '',
+        `Two experiences. One standard. All Lux.`,
+        `— The Lux Team`
+      ].join('\n')
+    };
+    console.log('📧 [Proof-of-purchase email queued]', payload);
+    // Production:
+    // fetch('/api/send-proof', { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  document.getElementById('exportCsv').addEventListener('click', () => {
+    const arr = load();
+    if (!arr.length) return toast('Nothing to export');
+    const headers = [
+      'Reservation ID','Created','Event','Status','Paid At',
+      'Name','Email','Phone','Area','Gender','Drink',
+      'T-Shirt Color','T-Shirt Size',
+      'Style I Color','Style I Size','Style II Color','Style II Size',
+      'Total TTD','Rep','Zone',
+      'Emergency Name','Emergency Phone'
+    ];
+    const rows = arr.map(r => [
+      r.id, r.createdAt, r.eventName, r.status, r.paidAt || '',
+      r.userName, r.userEmail, r.contact || r.userPhone || '',
+      r.address || '', r.gender || '', r.drink || '',
+      r.tee?.color || '', r.tee?.size || '',
+      r.style1?.color || '', r.style1?.size || '',
+      r.style2?.color || '', r.style2?.size || '',
+      r.total, r.rep?.name || '', r.rep?.zone || '',
+      r.emergencyContact?.name || '', r.emergencyContact?.phone || ''
+    ]);
+    const csv = [headers, ...rows].map(row =>
+      row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `lux-reservations-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('CSV exported');
+  });
+
+  let toastT;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  // Sign out
+  document.getElementById('signOutBtn').addEventListener('click', () => {
+    sessionStorage.removeItem('lux_rep_in');
+    sessionStorage.removeItem('lux_rep_email');
+    location.reload();
+  });
+
+  // Show signed-in email in the rep chip
+  if (sessionStorage.getItem('lux_rep_in')) {
+    const email = sessionStorage.getItem('lux_rep_email') || ADMIN_EMAIL;
+    document.getElementById('repChip').innerHTML = `● ${email}`;
+    render();
+  }
+  window.addEventListener('storage', (e) => { if (e.key === KEY) render(); });
+})();
+</script>
+</body>
+</html>
