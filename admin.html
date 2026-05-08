@@ -288,6 +288,7 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   <select id="filterRep">
     <option value="">All reps</option>
   </select>
+  <button class="btn-sm btn-view" id="refreshBtn">Refresh ↻</button>
   <button class="btn-sm btn-view" id="exportCsv">Export CSV</button>
   <div class="count" id="countLabel">0 reservations</div>
 </div>
@@ -328,20 +329,38 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
 (() => {
   'use strict';
 
+  // ============================================================
+  // BACKEND CONFIG
+  // After deploying the Apps Script (apps-script-backend.js), paste the
+  // Web app URL between the quotes below. MUST match the URL in index.html.
+  // ============================================================
+  window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbxr2Aa0ZhEJbHmEYlh9D3jpL3z674AzBbZbUPqeZScfTeYAaF_8MHLXIKUtEcBtKBXKyA/exec';
+
   // ---------- Gate ----------
-  // Demo-mode admin auth using a SHA-256 hashed password. The default below is
-  // the hash of 'lux2027!admin' — CHANGE THIS BEFORE GOING PUBLIC.
-  // To generate your own:  printf '%s' 'YourNewPassword' | sha256sum
-  // Or swap to Firebase Auth with a custom admin claim for real production
-  // (see README → "Production upgrade — Firebase").
+  // Admin login uses email + password. Password is SHA-256 hashed client-side
+  // and compared against the hash here AND on the Apps Script backend.
+  // Both ADMIN_PASS_HASH values (here AND in apps-script-backend.js) must match
+  // when you change the password — keep them in lockstep.
   const ADMIN_EMAIL = 'support@luxjouvert.com';
   const ADMIN_PASS_HASH = 'fd2e1446a6e13dd19941d1e3115fb538b26261e4163696fb87dd23bcd55722b8'; // 'lux2027!admin'
-  // Fallback hashes accepted in addition to the main one — useful if you rotate
-  // and want the old password to still work for a grace period.
   const FALLBACK_PASS_HASHES = [
-    // SHA-256 of 'lux2027' — keeps the original demo passcode working
+    // SHA-256 of 'lux2027' — kept for grace-period rotation
     'c43cd17767633ea927e6cfb7a7fcbfb5944f11d6cf5881cfb808fceaf3b9ec78'
   ];
+
+  async function api(action, params = {}) {
+    if (!window.LUX_API_URL || window.LUX_API_URL.startsWith('PASTE_')) {
+      throw new Error('Backend not configured yet — set window.LUX_API_URL');
+    }
+    const res = await fetch(window.LUX_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, ...params })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  }
 
   const gate = document.getElementById('gate');
   const app  = document.getElementById('appRoot');
@@ -361,15 +380,23 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
     if (!email || !pass) { toast('Email and password required'); return; }
     if (email !== ADMIN_EMAIL) { toast('Not an admin account'); return; }
     const hash = await sha256(pass);
-    if (hash === ADMIN_PASS_HASH || FALLBACK_PASS_HASHES.includes(hash)) {
-      gate.style.display = 'none';
-      app.classList.add('show');
-      sessionStorage.setItem('lux_rep_in', '1');
-      sessionStorage.setItem('lux_rep_email', email);
-      render();
-    } else {
+    if (hash !== ADMIN_PASS_HASH && !FALLBACK_PASS_HASHES.includes(hash)) {
       toast('Wrong password');
+      return;
     }
+    // Store the hash in sessionStorage so subsequent API calls can authenticate
+    // server-side. Only the active hash is accepted by the backend; if the user
+    // signed in with a fallback hash, warn them but still admit.
+    if (hash !== ADMIN_PASS_HASH) {
+      toast('Signed in with legacy password — rotate it soon');
+    }
+    sessionStorage.setItem('lux_rep_in', '1');
+    sessionStorage.setItem('lux_rep_email', email);
+    sessionStorage.setItem('lux_rep_hash', ADMIN_PASS_HASH); // always send the canonical hash to backend
+    gate.style.display = 'none';
+    app.classList.add('show');
+    document.getElementById('repChip').innerHTML = `● ${email}`;
+    fetchAll().then(render);
   }
   if (sessionStorage.getItem('lux_rep_in')) {
     gate.style.display = 'none';
@@ -377,66 +404,28 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   }
 
   // ---------- Data ----------
-  const KEY = 'lux_reservations';
-  const load = () => JSON.parse(localStorage.getItem(KEY) || '[]');
-  const save = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
-
-  // Seed demo data once — uses the new schema (separate events, full registration fields)
-  if (load().length === 0) {
-    const demo = [
-      {
-        id: 'LUX-A1B2C3-X7Y9', createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        userEmail: 'sasha@example.com', userName: 'Sasha Ramkissoon', userPhone: '1-868-555-0201',
-        event: 'jouvert', eventName: "LUX J'Ouvert",
-        gender: 'female', address: 'San Fernando',
-        contact: '1-868-555-0201', drink: 'Hennessy & Coke',
-        emergencyContact: { name: 'Devin Ramkissoon', phone: '1-868-555-0202' },
-        tee:    { color: 'White', size: 'M' },
-        style1: { color: 'Black', size: 'M' },
-        style2: { color: 'White', size: 'M' },
-        total: 650,
-        rep: { name: 'Keisha', phone: '+1-868-555-0101', zone: 'San Fernando · POS' },
-        status: 'PAID', paidAt: new Date(Date.now() - 86400000).toISOString()
-      },
-      {
-        id: 'LUX-D4E5F6-M3N8', createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-        userEmail: 'jahmal@example.com', userName: 'Jahmal Alleyne', userPhone: '1-868-555-0203',
-        event: 'blackout', eventName: 'Lux Blackout',
-        gender: 'male', address: 'Marabella',
-        contact: '1-868-555-0203', drink: 'Rum & Coke',
-        emergencyContact: { name: 'Kerry Alleyne', phone: '1-868-555-0204' },
-        tee: { color: 'Neon Pink', size: 'XL' },
-        total: 500,
-        rep: { name: 'Marlon', phone: '+1-868-555-0102', zone: 'South · Marabella' },
-        status: 'PENDING_PAYMENT'
-      },
-      {
-        id: 'LUX-G7H8I9-P2Q4', createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-        userEmail: 'tia@example.com', userName: 'Tia Mohammed', userPhone: '1-868-555-0205',
-        event: 'jouvert', eventName: "LUX J'Ouvert",
-        gender: 'male', address: 'Chaguanas',
-        contact: '1-868-555-0205', drink: 'Vodka & Cranberry',
-        emergencyContact: { name: 'Anika Mohammed', phone: '1-868-555-0206' },
-        tee: { color: 'Black', size: 'L' },
-        total: 650,
-        rep: { name: 'Aaliyah', phone: '+1-868-555-0103', zone: 'Central · Chaguanas' },
-        status: 'PENDING_PAYMENT'
-      },
-      {
-        id: 'LUX-J0K1L2-R5S7', createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-        userEmail: 'kareem@example.com', userName: 'Kareem Joseph', userPhone: '1-868-555-0207',
-        event: 'blackout', eventName: 'Lux Blackout',
-        gender: 'female', address: 'Princes Town',
-        contact: '1-868-555-0207', drink: '',
-        emergencyContact: { name: 'Lisa Joseph', phone: '1-868-555-0208' },
-        tee: { color: 'Neon Orange', size: 'S' },
-        total: 500,
-        rep: { name: 'Marlon', phone: '+1-868-555-0102', zone: 'South · Marabella' },
-        status: 'PENDING_PAYMENT'
-      }
-    ];
-    save(demo);
+  // Reservations live in the Google Sheet via Apps Script.
+  // We cache the latest fetch in memory for fast filtering/sorting; refresh via API.
+  let _cache = [];
+  const load = () => _cache;
+  function adminAuth() {
+    return {
+      adminEmail: sessionStorage.getItem('lux_rep_email') || ADMIN_EMAIL,
+      adminPassHash: sessionStorage.getItem('lux_rep_hash') || ADMIN_PASS_HASH
+    };
   }
+  async function fetchAll() {
+    try {
+      const { reservations } = await api('getAllReservations', adminAuth());
+      _cache = reservations || [];
+      return _cache;
+    } catch (err) {
+      toast('Load failed: ' + err.message);
+      return _cache;
+    }
+  }
+
+  // (Legacy demo seed removed — real data lives in the Google Sheet now)
 
   // ---------- Filters ----------
   const searchEl = document.getElementById('search');
@@ -602,63 +591,30 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
     if (conf) conf.addEventListener('click', () => { markPaid(r.id); modalBd.classList.remove('open'); });
   }
 
-  function markPaid(id) {
-    const arr = load();
-    const r = arr.find(x => x.id === id);
-    if (!r) return;
-    r.status = 'PAID';
-    r.paidAt = new Date().toISOString();
-    save(arr);
-    sendProofOfPurchase(r);
-    toast(`${r.userName} paid — proof-of-purchase email queued ✓`);
-    render();
-  }
-  function cancelRes(id) {
-    if (!confirm('Cancel this reservation? The masquerader will be notified.')) return;
-    const arr = load();
-    const r = arr.find(x => x.id === id);
-    if (!r) return;
-    r.status = 'CANCELLED';
-    save(arr);
-    toast(`Reservation ${id} cancelled`);
-    render();
+  async function markPaid(id) {
+    try {
+      const { reservation } = await api('markPaid', { ...adminAuth(), reservationId: id });
+      // Update cache locally so we don't need to re-fetch the entire list
+      const idx = _cache.findIndex(x => x.id === id);
+      if (idx >= 0) _cache[idx] = reservation;
+      toast(`${reservation.userName || reservation.userEmail} paid — invoice email sent ✓`);
+      render();
+    } catch (err) {
+      toast('Mark paid failed: ' + err.message);
+    }
   }
 
-  // Build & log a proof-of-purchase email payload (replace with SendGrid/Resend POST in prod)
-  function sendProofOfPurchase(r) {
-    let appLines;
-    if (r.event === 'jouvert' && r.gender === 'female') {
-      appLines = [
-        `T-Shirt:        ${r.tee.color} · ${r.tee.size}`,
-        `Style I:        ${r.style1.color} · ${r.style1.size}`,
-        `Style II:       ${r.style2.color} · ${r.style2.size}`
-      ];
-    } else {
-      appLines = [`Apparel:        ${r.tee.color} · ${r.tee.size}`];
+  async function cancelRes(id) {
+    if (!confirm('Cancel this reservation? The masquerader will be notified.')) return;
+    try {
+      const { reservation } = await api('cancelReservation', { ...adminAuth(), reservationId: id });
+      const idx = _cache.findIndex(x => x.id === id);
+      if (idx >= 0) _cache[idx] = reservation;
+      toast(`Reservation ${id} cancelled`);
+      render();
+    } catch (err) {
+      toast('Cancel failed: ' + err.message);
     }
-    const payload = {
-      to: r.userEmail,
-      subject: `${r.eventName} — Payment Confirmed`,
-      body: [
-        `Yow ${r.userName.split(' ')[0]},`, '',
-        `We received your cash payment from rep ${r.rep?.name}. You're locked in for Carnival Monday 2027.`, '',
-        `Reservation ID: ${r.id}`,
-        `Event:          ${r.eventName}`,
-        `Package:        ${r.gender === 'male' ? 'Male' : 'Female'}`,
-        ...appLines,
-        `Drink:          ${r.drink || '—'}`,
-        `Area:           ${r.address}`,
-        `Total Paid:     $${(r.total || 0).toLocaleString()} TTD`,
-        '',
-        `Costume pickup details will land in your inbox closer to launch. Follow @luxjouvert for band-launch dates.`,
-        '',
-        `Two experiences. One standard. All Lux.`,
-        `— The Lux Team`
-      ].join('\n')
-    };
-    console.log('📧 [Proof-of-purchase email queued]', payload);
-    // Production:
-    // fetch('/api/send-proof', { method: 'POST', body: JSON.stringify(payload) });
   }
 
   document.getElementById('exportCsv').addEventListener('click', () => {
@@ -707,16 +663,27 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   document.getElementById('signOutBtn').addEventListener('click', () => {
     sessionStorage.removeItem('lux_rep_in');
     sessionStorage.removeItem('lux_rep_email');
+    sessionStorage.removeItem('lux_rep_hash');
     location.reload();
   });
 
-  // Show signed-in email in the rep chip
+  // Manual refresh
+  document.getElementById('refreshBtn').addEventListener('click', async (e) => {
+    e.target.textContent = 'Loading…';
+    e.target.disabled = true;
+    await fetchAll();
+    render();
+    e.target.textContent = 'Refresh ↻';
+    e.target.disabled = false;
+    toast('Refreshed');
+  });
+
+  // Initial load
   if (sessionStorage.getItem('lux_rep_in')) {
     const email = sessionStorage.getItem('lux_rep_email') || ADMIN_EMAIL;
     document.getElementById('repChip').innerHTML = `● ${email}`;
-    render();
+    fetchAll().then(render);
   }
-  window.addEventListener('storage', (e) => { if (e.key === KEY) render(); });
 })();
 </script>
 </body>
