@@ -903,6 +903,42 @@ label {
 
 .mt-0 { margin-top: 0 !important; }
 .required-mark { color: var(--magenta); }
+
+/* My Reservations cards */
+.res-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  transition: border-color .2s;
+}
+.res-card:hover { border-color: var(--gold); }
+.res-card.status-PAID { border-color: rgba(199,255,60,0.3); background: rgba(199,255,60,0.04); }
+.res-card.status-CANCELLED { border-color: rgba(225,29,116,0.3); background: rgba(225,29,116,0.04); opacity: 0.7; }
+
+.res-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.res-card-id { font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: .05em; color: var(--gold); }
+.res-card-event { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin-top: 2px; }
+.res-status-pill {
+  font-family: var(--font-display); font-size: 10px; font-weight: 800;
+  letter-spacing: .15em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+}
+.res-status-pill.PENDING_PAYMENT { background: rgba(255,200,87,0.12); color: var(--gold); border: 1px solid rgba(255,200,87,0.3); }
+.res-status-pill.PAID { background: rgba(199,255,60,0.14); color: var(--lime); border: 1px solid rgba(199,255,60,0.3); }
+.res-status-pill.CANCELLED { background: rgba(225,29,116,0.12); color: #FF8DB5; border: 1px solid rgba(225,29,116,0.3); }
+
+.res-card-meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 14px; margin-top: 12px; font-size: 12px; }
+@media (max-width: 480px) { .res-card-meta { grid-template-columns: 1fr; } }
+.res-card-meta div { color: var(--muted-strong); }
+.res-card-meta .k { color: var(--muted); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; font-weight: 600; }
+
+.res-empty {
+  padding: 22px 18px; text-align: center; color: var(--muted);
+  background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 14px;
+  font-size: 13px;
+}
 </style>
 </head>
 <body>
@@ -1393,6 +1429,20 @@ label {
                 <div class="msg error" id="bMsg"></div>
               </form>
 
+              <!-- ============== MY RESERVATIONS PANEL ============== -->
+              <!-- Shown above the new-reservation form once logged in.
+                   Pulls live from the Google Sheet via Apps Script. -->
+              <div id="myReservations" style="display:none; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <h3 style="font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: -.01em;">My Reservations</h3>
+                  <button type="button" id="refreshMyResBtn" class="btn btn-ghost" style="padding: 8px 14px; font-size: 11px;">Refresh ↻</button>
+                </div>
+                <div id="myResList"></div>
+                <div style="margin: 18px 0; padding: 14px 16px; background: rgba(0,240,255,0.06); border: 1px solid rgba(0,240,255,0.2); border-radius: 12px; font-size: 13px; color: var(--muted-strong);">
+                  Add another reservation below — separate registration for each event.
+                </div>
+              </div>
+
               <!-- Reservation receipt -->
               <div class="reservation-receipt" id="receipt">
                 <div style="font-family: var(--font-accent); font-style: italic; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; font-size: 11px;">Your Reservation ID</div>
@@ -1505,8 +1555,8 @@ label {
         <div class="faq-a">Full refund up to 30 days before Carnival Monday. 50% refund between 30 and 14 days. Within 14 days no refund, but your package is transferable — bring a friend in your place and we'll update the name.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q">Is the event safe? <span class="ico">+</span></button>
-        <div class="faq-a">We have private security. Waterproof phone case in the J'Ouvert kit so nothing gets destroyed. Route is pre-cleared with TTPS. Your emergency contact goes in the system the moment you reserve.</div>
+        <button class="faq-q">Is J'Ouvert safe? <span class="ico">+</span></button>
+        <div class="faq-a">We have private security and roving medics with us from assembly to chip-home. Waterproof phone case in the J'Ouvert kit so nothing gets destroyed. Route is pre-cleared with TTPS. Your emergency contact goes in the system the moment you reserve.</div>
       </div>
     </div>
   </div>
@@ -1566,7 +1616,7 @@ label {
     <div class="alex-avatar">A</div>
     <div>
       <div class="alex-name">Alex · Lux Assistant</div>
-      <div class="alex-status">Online · TheCollective.icu-powered</div>
+      <div class="alex-status">Online · Claude-powered</div>
     </div>
     <button class="alex-close" id="alexClose" aria-label="Close chat">×</button>
   </div>
@@ -1616,16 +1666,31 @@ label {
   });
 
   // ============================================================
-  // AUTH (demo — localStorage). Swap to Firebase in prod.
+  // BACKEND CONFIG
+  // After deploying the Apps Script (apps-script-backend.js), paste the
+  // Web app URL between the quotes below. It looks like:
+  //   https://script.google.com/macros/s/AKfyc<long-string>/exec
   // ============================================================
-  const LS = { users: 'lux_users', session: 'lux_session', reservations: 'lux_reservations' };
+  window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbxr2Aa0ZhEJbHmEYlh9D3jpL3z674AzBbZbUPqeZScfTeYAaF_8MHLXIKUtEcBtKBXKyA/exec';
 
-  const hashPass = async (str) => {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-  const getUsers = () => JSON.parse(localStorage.getItem(LS.users) || '{}');
-  const saveUsers = (u) => localStorage.setItem(LS.users, JSON.stringify(u));
+  async function api(action, params = {}) {
+    if (!window.LUX_API_URL || window.LUX_API_URL.startsWith('PASTE_')) {
+      throw new Error('Backend not configured yet — set window.LUX_API_URL');
+    }
+    const res = await fetch(window.LUX_API_URL, {
+      method: 'POST',
+      // text/plain avoids a CORS preflight for Apps Script
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, ...params })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  }
+
+  // Local session — only stores email + sessionToken returned by the backend.
+  // Real password & data live in the Google Sheet.
+  const LS = { session: 'lux_session' };
   const getSession = () => JSON.parse(localStorage.getItem(LS.session) || 'null');
   const setSession = (s) => localStorage.setItem(LS.session, JSON.stringify(s));
   const clearSession = () => localStorage.removeItem(LS.session);
@@ -1647,53 +1712,123 @@ label {
     if (type === 'success') setTimeout(() => el.classList.remove('show'), 4000);
   };
 
-  // Signup
+  // Signup → API
   document.getElementById('signupForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const first = document.getElementById('suFirst').value.trim();
-    const last  = document.getElementById('suLast').value.trim();
-    const email = document.getElementById('suEmail').value.trim().toLowerCase();
-    const phone = document.getElementById('suPhone').value.trim();
-    const pass  = document.getElementById('suPass').value;
-    const msg   = document.getElementById('signupMsg');
-
-    const users = getUsers();
-    if (users[email]) return showMsg(msg, 'Email already registered. Try logging in.');
-    users[email] = {
-      email, phone, first, last,
-      name: first + ' ' + last,
-      passHash: await hashPass(pass),
-      createdAt: new Date().toISOString()
-    };
-    saveUsers(users);
-    setSession({ email, name: first + ' ' + last, phone, loginAt: new Date().toISOString() });
-    showMsg(msg, 'Welcome to Lux.', 'success');
-    setTimeout(renderAuthState, 500);
+    const msg = document.getElementById('signupMsg');
+    const btn = e.submitter; if (btn) btn.disabled = true;
+    try {
+      const { sessionToken, user } = await api('signup', {
+        firstName: document.getElementById('suFirst').value.trim(),
+        lastName:  document.getElementById('suLast').value.trim(),
+        email:     document.getElementById('suEmail').value.trim().toLowerCase(),
+        phone:     document.getElementById('suPhone').value.trim(),
+        password:  document.getElementById('suPass').value
+      });
+      setSession({ email: user.email, name: user.name, phone: user.phone, sessionToken, loginAt: new Date().toISOString() });
+      showMsg(msg, 'Welcome to Lux.', 'success');
+      setTimeout(renderAuthState, 400);
+    } catch (err) {
+      showMsg(msg, err.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   });
 
-  // Login
+  // Login → API
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-    const pass  = document.getElementById('loginPass').value;
-    const msg   = document.getElementById('loginMsg');
-    const users = getUsers();
-    const user = users[email];
-    if (!user) return showMsg(msg, 'No account with that email.');
-    if (user.passHash !== await hashPass(pass)) return showMsg(msg, 'Incorrect password.');
-    setSession({ email, name: user.name, phone: user.phone, loginAt: new Date().toISOString() });
-    showMsg(msg, 'Logged in.', 'success');
-    setTimeout(renderAuthState, 300);
+    const msg = document.getElementById('loginMsg');
+    const btn = e.submitter; if (btn) btn.disabled = true;
+    try {
+      const { sessionToken, user } = await api('login', {
+        email:    document.getElementById('loginEmail').value.trim().toLowerCase(),
+        password: document.getElementById('loginPass').value
+      });
+      setSession({ email: user.email, name: user.name, phone: user.phone, sessionToken, loginAt: new Date().toISOString() });
+      showMsg(msg, 'Logged in.', 'success');
+      setTimeout(renderAuthState, 300);
+    } catch (err) {
+      showMsg(msg, err.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   });
 
+  // ============================================================
+  // MY RESERVATIONS — fetch from sheet and render
+  // ============================================================
+  const PKG_LABEL = (r) => {
+    if (r.event === 'jouvert' && r.gender === 'female' && r.style1 && r.style2) {
+      return `Female · Tee ${r.tee.color}/${r.tee.size} · S1 ${r.style1.color}/${r.style1.size} · S2 ${r.style2.color}/${r.style2.size}`;
+    }
+    return `${r.gender === 'male' ? 'Male' : 'Female'} · ${r.tee.color} ${r.tee.size}`;
+  };
+
+  function renderMyReservations(reservations) {
+    const container = document.getElementById('myResList');
+    if (!reservations || reservations.length === 0) {
+      container.innerHTML = '<div class="res-empty">No reservations yet. Pick an event below to get started.</div>';
+      return;
+    }
+    container.innerHTML = reservations.map(r => `
+      <div class="res-card status-${r.status}">
+        <div class="res-card-top">
+          <div>
+            <div class="res-card-id">${r.id}</div>
+            <div class="res-card-event">${r.eventName}</div>
+          </div>
+          <span class="res-status-pill ${r.status}">${
+            r.status === 'PENDING_PAYMENT' ? 'Pending Payment' :
+            r.status === 'PAID' ? 'Paid ✓' : 'Cancelled'
+          }</span>
+        </div>
+        <div class="res-card-meta">
+          <div><div class="k">Package</div>${PKG_LABEL(r)}</div>
+          <div><div class="k">Total</div>$${(r.total || 0).toLocaleString()} TTD</div>
+          <div><div class="k">Area</div>${r.address || '—'}</div>
+          <div><div class="k">Rep</div>${r.rep?.name || '—'} · ${r.rep?.phone || ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function loadMyReservations() {
+    const session = getSession();
+    if (!session) return;
+    const list = document.getElementById('myResList');
+    list.innerHTML = '<div class="res-empty">Loading…</div>';
+    try {
+      const { reservations } = await api('getMyReservations', {
+        userEmail: session.email, sessionToken: session.sessionToken
+      });
+      renderMyReservations(reservations);
+    } catch (err) {
+      // Token expired or backend unreachable — bounce them back to login
+      if (/session/i.test(err.message)) {
+        clearSession();
+        renderAuthState();
+        return;
+      }
+      list.innerHTML = `<div class="res-empty">Couldn't load reservations: ${err.message}</div>`;
+    }
+  }
+
+  document.getElementById('refreshMyResBtn').addEventListener('click', loadMyReservations);
+
+  // ============================================================
+  // Auth state renderer
+  // ============================================================
   function renderAuthState() {
     const session = getSession();
     const authPanel = document.getElementById('authPanel');
     const reservePanel = document.getElementById('reservePanel');
     const strip = document.getElementById('accountStrip');
+    const myRes = document.getElementById('myReservations');
     if (session) {
       authPanel.style.display = 'none';
       reservePanel.style.display = 'block';
+      myRes.style.display = 'block';
       strip.style.display = 'flex';
       strip.innerHTML = `
         <span>Logged in as <span class="who">${session.name}</span> · ${session.email}</span>
@@ -1707,9 +1842,11 @@ label {
       const ph = session.phone || '';
       document.getElementById('jContact').value = ph;
       document.getElementById('bContact').value = ph;
+      loadMyReservations();
     } else {
       authPanel.style.display = 'block';
       reservePanel.style.display = 'none';
+      myRes.style.display = 'none';
       strip.style.display = 'none';
     }
   }
@@ -1751,22 +1888,9 @@ label {
   });
 
   // ============================================================
-  // RESERVATION
+  // RESERVATION — pricing, IDs, rep assignment all handled server-side now
+  // (see apps-script-backend.js). Front-end only collects + posts.
   // ============================================================
-  const PRICES = { jouvert: 650, blackout: 500 };
-  const EVENT_NAMES = { jouvert: "LUX J'Ouvert", blackout: "Lux Blackout" };
-  const REPS = [
-    { name: 'Keisha',  phone: '+1-868-555-0101', zone: 'San Fernando · POS' },
-    { name: 'Marlon',  phone: '+1-868-555-0102', zone: 'South · Marabella' },
-    { name: 'Aaliyah', phone: '+1-868-555-0103', zone: 'Central · Chaguanas' }
-  ];
-
-  const genResId = () => {
-    const ts = Date.now().toString(36).toUpperCase();
-    const rnd = Math.random().toString(36).substr(2, 4).toUpperCase();
-    return `LUX-${ts.slice(-6)}-${rnd}`;
-  };
-
   const radioVal = (name) => {
     const r = document.querySelector(`input[name="${name}"]:checked`);
     return r ? r.value : '';
@@ -1840,7 +1964,7 @@ label {
     };
   }
 
-  async function submitReservation(event, collectorFn, msgEl) {
+  async function submitReservation(event, collectorFn, msgEl, btn) {
     const session = getSession();
     if (!session) return;
     msgEl.classList.remove('show');
@@ -1849,42 +1973,47 @@ label {
     try { formData = collectorFn(); }
     catch (err) { return showMsg(msgEl, err.message); }
 
-    const id = genResId();
-    const total = PRICES[event];
-    const rep = REPS[Math.floor(Math.random() * REPS.length)];
-    const user = getUsers()[session.email];
+    if (btn) btn.disabled = true;
+    try {
+      const { reservation } = await api('createReservation', {
+        userEmail: session.email,
+        sessionToken: session.sessionToken,
+        event,
+        ...formData
+      });
 
-    const reservation = {
-      id, createdAt: new Date().toISOString(),
-      userEmail: session.email, userName: session.name,
-      userPhone: user?.phone || formData.contact,
-      event, eventName: EVENT_NAMES[event],
-      total, rep,
-      status: 'PENDING_PAYMENT',
-      ...formData
-    };
+      // Render receipt from server response
+      document.getElementById('rcpId').textContent    = reservation.id;
+      document.getElementById('rcpEvent').textContent = reservation.eventName;
+      document.getElementById('rcpName').textContent  = session.name;
+      document.getElementById('rcpPkg').textContent   = buildPackageSummary(event, formData);
+      document.getElementById('rcpTotal').textContent = `$${reservation.total.toLocaleString()} TTD`;
+      document.getElementById('rcpRep').textContent   = `${reservation.rep.name} (${reservation.rep.zone}) · ${reservation.rep.phone}`;
+      document.getElementById('receipt').classList.add('show');
+      document.getElementById('receipt').scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    const all = JSON.parse(localStorage.getItem(LS.reservations) || '[]');
-    all.push(reservation);
-    localStorage.setItem(LS.reservations, JSON.stringify(all));
-
-    document.getElementById('rcpId').textContent    = id;
-    document.getElementById('rcpEvent').textContent = EVENT_NAMES[event];
-    document.getElementById('rcpName').textContent  = session.name;
-    document.getElementById('rcpPkg').textContent   = buildPackageSummary(event, formData);
-    document.getElementById('rcpTotal').textContent = `$${total.toLocaleString()} TTD`;
-    document.getElementById('rcpRep').textContent   = `${rep.name} (${rep.zone}) · ${rep.phone}`;
-    document.getElementById('receipt').classList.add('show');
-    document.getElementById('receipt').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Refresh the My Reservations list so the new one appears
+      loadMyReservations();
+    } catch (err) {
+      // Session expired — bounce to login
+      if (/session/i.test(err.message)) {
+        clearSession();
+        renderAuthState();
+        return;
+      }
+      showMsg(msgEl, err.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   document.getElementById('jouvertForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    submitReservation('jouvert', collectJouvert, document.getElementById('jMsg'));
+    submitReservation('jouvert', collectJouvert, document.getElementById('jMsg'), e.submitter);
   });
   document.getElementById('blackoutForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    submitReservation('blackout', collectBlackout, document.getElementById('bMsg'));
+    submitReservation('blackout', collectBlackout, document.getElementById('bMsg'), e.submitter);
   });
 
   document.getElementById('copyIdBtn').addEventListener('click', (e) => {
