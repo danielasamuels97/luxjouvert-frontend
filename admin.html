@@ -219,13 +219,88 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
 
 #appRoot { display: none; }
 #appRoot.show { display: block; }
+
+/* ============================================================
+   MOBILE — below 720px the table collapses into stacked cards.
+   Each row becomes a card; each cell shows its column label.
+   ============================================================ */
+@media (max-width: 720px) {
+  .wrap { padding: 24px 14px 60px; }
+  header.bar { margin-bottom: 22px; }
+  h1 { font-size: 30px; }
+
+  .toolbar { padding: 12px; }
+  .toolbar input, .toolbar select { min-width: 0; flex: 1 1 100%; }
+  .toolbar .btn-sm { flex: 1 1 auto; text-align: center; }
+  .toolbar .count { margin-left: 0; flex: 1 1 100%; text-align: center; padding-top: 4px; }
+
+  /* Table → cards */
+  .table-wrap { overflow-x: visible; border: 0; background: none; border-radius: 0; }
+  table { min-width: 0; }
+  thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+
+  tbody tr {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 6px 14px 12px;
+    margin-bottom: 12px;
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 10px 0;
+    border: 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.07);
+    text-align: right;
+  }
+  tbody td:last-child { border-bottom: 0; }
+
+  /* Column label on the left of each cell */
+  tbody td::before {
+    content: attr(data-label);
+    font-family: var(--font-display);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    flex: 0 0 90px;
+    padding-top: 2px;
+  }
+
+  /* Inner divs of a cell align right under the label */
+  tbody td > div { text-align: right; }
+  tbody td .small { text-align: right; }
+
+  .actions { justify-content: flex-end; }
+  .actions .btn-sm { flex: 0 0 auto; }
+
+  /* Modal fills more of the screen on phones */
+  .modal { padding: 24px 18px; }
+  .row .k { min-width: 0; }
+}
+
+@media (max-width: 420px) {
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpi .val { font-size: 26px; }
+  tbody td { flex-wrap: wrap; }
+  tbody td::before { flex-basis: 100%; }
+  tbody td > div, tbody td .small { text-align: left; width: 100%; }
+  tbody td { text-align: left; }
+  .actions { justify-content: flex-start; }
+}
 </style>
 </head>
 <body>
 
 <div class="gate" id="gate">
   <h2>Band Rep Sign In</h2>
-  <p>Sign in with your Lux admin account to manage cash reservations.</p>
+  <p>Sign in with your Lux admin account to manage reservations.</p>
   <input type="email" id="gateEmail" placeholder="support@luxjouvert.com" autocomplete="username" />
   <input type="password" id="gatePass" placeholder="Password" autocomplete="current-password" />
   <button id="gateBtn">Sign In</button>
@@ -246,8 +321,8 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   </div>
 </header>
 
-<h1>Cash Reservations</h1>
-<div class="lede">Confirm cash payments. Send proof-of-purchase. Track the band's road to Monday.</div>
+<h1>Reservations</h1>
+<div class="lede">Confirm payments. Send proof-of-purchase. Track the band's road to Monday.</div>
 
 <section class="kpis">
   <div class="kpi pending">
@@ -334,7 +409,7 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   // After deploying the Apps Script (apps-script-backend.js), paste the
   // Web app URL between the quotes below. MUST match the URL in index.html.
   // ============================================================
-  window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbxr2Aa0ZhEJbHmEYlh9D3jpL3z674AzBbZbUPqeZScfTeYAaF_8MHLXIKUtEcBtKBXKyA/exec';
+  window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbykFZllYd9NI2b7xx97J2O29TO6fbwakkdiqEY3xvgEjuzr0AW-ZJ7Bi1sgvRySgCvS9g/exec';
 
   // ---------- Gate ----------
   // Admin login uses email + password. Password is SHA-256 hashed client-side
@@ -478,24 +553,24 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
 
     tbody.innerHTML = rows.map(r => `
       <tr data-id="${r.id}">
-        <td>
+        <td data-label="Reservation">
           <div class="id-cell">${r.id}</div>
           <div class="small">${new Date(r.createdAt).toLocaleString('en-TT', { dateStyle: 'medium', timeStyle: 'short' })}</div>
         </td>
-        <td>
+        <td data-label="Masquerader">
           <div>${escape(r.userName)}</div>
           <div class="small">${escape(r.userEmail)} · ${escape(r.userPhone || r.contact || '—')}</div>
         </td>
-        <td><span class="event-tag ${r.event}">${escape(r.eventName)}</span></td>
-        <td>${packageBrief(r)}</td>
-        <td style="font-weight: 600; color: var(--gold);">$${(r.total || 0).toLocaleString()}</td>
-        <td>${escape(r.address || '—')}</td>
-        <td>
+        <td data-label="Event"><span class="event-tag ${r.event}">${escape(r.eventName)}</span></td>
+        <td data-label="Package">${packageBrief(r)}</td>
+        <td data-label="Total" style="font-weight: 600; color: var(--gold);">$${(r.total || 0).toLocaleString()}</td>
+        <td data-label="Area">${escape(r.address || '—')}</td>
+        <td data-label="Rep">
           <div>${escape(r.rep?.name || '—')}</div>
           <div class="small">${escape(r.rep?.zone || '')}</div>
         </td>
-        <td>${statusChipHtml(r.status)}</td>
-        <td>
+        <td data-label="Status">${statusChipHtml(r.status)}</td>
+        <td data-label="Actions">
           <div class="actions">
             <button class="btn-sm btn-view" data-view="${r.id}">Details</button>
             ${r.status === 'PENDING_PAYMENT' ? `<button class="btn-sm btn-paid" data-paid="${r.id}">Mark Paid</button>` : ''}
@@ -582,7 +657,7 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
 
       <div class="modal-actions">
         <button class="btn-md btn-ghost" data-close>Close</button>
-        ${r.status === 'PENDING_PAYMENT' ? `<button class="btn-md btn-confirm" data-confirm="${r.id}">Confirm Cash Received</button>` : ''}
+        ${r.status === 'PENDING_PAYMENT' ? `<button class="btn-md btn-confirm" data-confirm="${r.id}">Confirm Payment Received</button>` : ''}
       </div>
     `;
     modalBd.classList.add('open');
