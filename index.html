@@ -939,6 +939,56 @@ label {
   background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 14px;
   font-size: 13px;
 }
+
+/* ============================================================
+   MOBILE POLISH — phones (≤640px) and small phones (≤400px)
+   ============================================================ */
+@media (max-width: 640px) {
+  /* Hero — let the meta strip flow in normally instead of overlapping */
+  .hero { padding: 96px 20px 40px; min-height: auto; }
+  .hero-phoenix { max-width: 88vw; margin-bottom: 18px; }
+  .eyebrow { font-size: 11px; letter-spacing: .2em; }
+  .eyebrow::before, .eyebrow::after { width: 22px; }
+  .hero-ctas { flex-direction: column; align-items: stretch; }
+  .hero-ctas .btn { justify-content: center; width: 100%; }
+  .hero-meta {
+    position: static; transform: none;
+    margin-top: 32px; gap: 14px 24px;
+    font-size: 10px;
+  }
+
+  /* Section rhythm */
+  .section-title { font-size: clamp(32px, 9vw, 52px); }
+
+  /* Worlds / packages already stack — tighten padding */
+  .world { padding: 36px 24px; min-height: 0; }
+  .pkg { padding: 32px 22px; }
+
+  /* Reserve steps + form */
+  .reserve-steps li { padding-left: 42px; }
+  .form-card { padding: 24px 18px; }
+  .form-tabs { flex-wrap: wrap; }
+  .form-tab { flex: 1 0 auto; font-size: 11px; padding: 9px 10px; }
+
+  /* Chip pickers stay tappable */
+  .chip-label, .color-chip-label { padding: 11px 16px; font-size: 13px; }
+
+  /* Alex chat fills the screen comfortably */
+  .alex-panel {
+    width: calc(100vw - 20px); right: 10px;
+    height: min(70vh, calc(100vh - 120px));
+    bottom: 88px;
+  }
+  .alex-fab { bottom: 18px; right: 18px; width: 58px; height: 58px; }
+}
+
+@media (max-width: 400px) {
+  .hero h1 .l1 { letter-spacing: .2em; }
+  .world h3, .pkg h4 { font-size: clamp(34px, 11vw, 48px); }
+  .receipt-id { font-size: 23px; }
+  .reserve-wrap { padding: 26px 16px; }
+  .field-row { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -992,7 +1042,7 @@ label {
     <div class="eyebrow">Trinidad Carnival · Monday 08 February 2027</div>
 
     <h1>
-      <span class="l1"></span>
+      <span class="l1">Lux Presents</span>
       <span class="l2">LUX J'Ouvert</span>
       <span class="amp">×</span>
       <span class="l3">BLACKOUT</span>
@@ -1011,7 +1061,7 @@ label {
 
   <div class="hero-meta">
     <span><i class="dot"></i> Limited Packages</span>
-    <span>Quick Payment · Local Band Reps</span>
+    <span>In-Person Payment · Local Band Reps</span>
     <span>Music Trucks · Premium Drinks · Glow</span>
   </div>
 </header>
@@ -1155,12 +1205,12 @@ label {
 <section class="section" id="reserve">
   <div class="container">
     <div class="reveal">
-      <div class="section-label">Reserve · Cash Payment</div>
-      <h2 class="section-title">Reserve now. <span class="accent">Pay your rep in cash.</span></h2>
+      <div class="section-label">Reserve · In-Person Payment</div>
+      <h2 class="section-title">Reserve now. <span class="accent">Pay your rep in person.</span></h2>
       <p class="section-lede">
         Create an account, pick your event, fill the registration, get your Reservation ID.
-        Bring payment to your assigned band rep at a collection point —
-        once they confirm payment, proof of purchase lands in your inbox, with a receipt.
+        Meet your assigned band rep in person at a collection point —
+        once they confirm payment, proof of purchase lands in your inbox.
       </p>
     </div>
 
@@ -1173,13 +1223,13 @@ label {
             <li><b>Pick Your Event</b>LUX J'Ouvert, Blackout, or both — separate registrations for each.</li>
             <li><b>Fill the Registration Form</b>Apparel size, color, contact info. Same fields as the band's official paper form.</li>
             <li><b>Get Your Reservation ID</b>A unique code. Screenshot it, save it.</li>
-            <li><b>Pay Your Rep </b>We assign you a rep + collection point. Get receipt.</li>
+            <li><b>Pay Your Rep in Person</b>We assign you a rep + collection point. Settle payment with them face to face.</li>
             <li><b>Proof of Purchase by Email</b>Once the rep confirms payment, your official receipt and costume pickup details land in your inbox.</li>
           </ol>
 
           <div style="margin-top: 28px; padding: 18px 20px; background: rgba(0,240,255,0.06); border: 1px solid rgba(0,240,255,0.2); border-radius: var(--radius); font-size: 13px; color: var(--muted-strong); line-height: 1.6;">
-            <div style="color: var(--cyan); font-family: var(--font-display); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 11px; margin-bottom: 6px;"> · Secure</div>
-            We don't store any card info. Reservations hold for <b style="color:var(--white)">7 days</b> pending payment — after that, spot opens back up to the waitlist.
+            <div style="color: var(--cyan); font-family: var(--font-display); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 11px; margin-bottom: 6px;">In-Person · Secure</div>
+            No card details are ever entered online — payment is settled directly with your band rep. Reservations hold for <b style="color:var(--white)">7 days</b> pending payment — after that, spot opens back up to the waitlist.
           </div>
         </div>
 
@@ -1450,9 +1500,9 @@ label {
                 <div class="receipt-row"><span>Event</span><span id="rcpEvent">—</span></div>
                 <div class="receipt-row"><span>Masquerader</span><span id="rcpName">—</span></div>
                 <div class="receipt-row"><span>Package</span><span id="rcpPkg">—</span></div>
-                <div class="receipt-row"><span>Total Due (cash)</span><span id="rcpTotal" style="color: var(--gold); font-weight: 800;">—</span></div>
+                <div class="receipt-row"><span>Total Due</span><span id="rcpTotal" style="color: var(--gold); font-weight: 800;">—</span></div>
                 <div class="receipt-row"><span>Assigned Rep</span><span id="rcpRep">—</span></div>
-                <div class="receipt-status">⏳ Pending Cash Payment · Your Rep Will Reach Out</div>
+                <div class="receipt-status">⏳ Pending Payment · Your Rep Will Reach Out</div>
                 <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
                   <button type="button" class="btn btn-ghost" id="copyIdBtn" style="padding: 10px 16px; font-size: 11px;">Copy ID</button>
                   <button type="button" class="btn btn-ghost" id="newResBtn" style="padding: 10px 16px; font-size: 11px;">New Reservation</button>
@@ -1531,12 +1581,12 @@ label {
         <div class="faq-a">No — they're <b>two separate events</b> on the same day. LUX J'Ouvert is the pre-dawn paint &amp; powder experience ($650 TTD). Blackout is the LED Night Mas after dark ($500 TTD). You can register for one or both — separate registration forms for each.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q">Why cash only? <span class="ico">+</span></button>
-        <div class="faq-a">We're running Lux debut year with zero payment-processor fees so the money goes straight into the experience. Reserve online, pay your rep in cash at a collection point. We'll move to card payments in later years.</div>
+        <button class="faq-q">How do I pay? <span class="ico">+</span></button>
+        <div class="faq-a">Payment is collected in person by your assigned band rep — no card details are entered online. Reserve on the site to lock your spot and Reservation ID, then your rep reaches out to arrange a collection point where you settle payment face to face. Once they confirm it, you get a proof-of-purchase email.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q">How do I know my spot is held? <span class="ico">+</span></button>
-        <div class="faq-a">The minute you submit the reservation form, you get a Reservation ID. That ID holds your size, package, and spot for 7 days while you arrange cash payment with your rep. Once your rep confirms payment, you get a proof-of-purchase email — that's your official receipt.</div>
+        <div class="faq-a">The minute you submit the reservation form, you get a Reservation ID. That ID holds your size, package, and spot for 7 days while you arrange payment with your rep. Once your rep confirms payment, you get a proof-of-purchase email — that's your official receipt.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q">Can I pay in installments? <span class="ico">+</span></button>
@@ -1671,7 +1721,7 @@ label {
   // Web app URL between the quotes below. It looks like:
   //   https://script.google.com/macros/s/AKfyc<long-string>/exec
   // ============================================================
-  window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbxr2Aa0ZhEJbHmEYlh9D3jpL3z674AzBbZbUPqeZScfTeYAaF_8MHLXIKUtEcBtKBXKyA/exec';
+  window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbykFZllYd9NI2b7xx97J2O29TO6fbwakkdiqEY3xvgEjuzr0AW-ZJ7Bi1sgvRySgCvS9g/exec';
 
   async function api(action, params = {}) {
     if (!window.LUX_API_URL || window.LUX_API_URL.startsWith('PASTE_')) {
@@ -2053,13 +2103,13 @@ label {
     { match: /\b(j'?ouvert|morning|paint|powder|sunrise|dawn)\b/i,
       reply: "LUX J'Ouvert is the pre-dawn paint &amp; powder experience — $650 TTD. Kit: T-shirt or Monokini (depending on package), pull-string bag, entry wristband, after-sun care, glow sticks, waterproof phone case, face towel, beads, unlimited premium drinks. Assembly 3:30AM in San Fernando, road out 4AM." },
     { match: /\b(price|cost|how much|650|500|fee)\b/i,
-      reply: "LUX J'Ouvert — $650 TTD. Lux Blackout — $500 TTD. Each is a separate registration. Cash payment to your assigned band rep." },
+      reply: "LUX J'Ouvert — $650 TTD. Lux Blackout — $500 TTD. Each is a separate registration. Payment is collected in person by your assigned band rep." },
     { match: /\b(pay|payment|cash|method)\b/i,
-      reply: "Cash-only for debut year. Reserve online → get a Reservation ID → assigned rep reaches out within 24 hours → pay them cash at a collection point → rep confirms → proof-of-purchase email lands. Installment plans available — ask your rep." },
+      reply: "Payment is collected in person by your band rep — nothing to enter online. Reserve here → get a Reservation ID → your assigned rep reaches out within 24 hours → meet them at a collection point and settle payment → rep confirms → proof-of-purchase email lands. Installment plans available — just ask your rep." },
     { match: /\b(refund|cancel|exchange)\b/i,
       reply: "Refunds: full up to 30 days before Carnival Monday, 50% between 30 and 14 days, none within 14 days (but transferable). Sizes: NO EXCHANGING on collection day — packages are pre-made, so pick carefully." },
     { match: /\b(rep|representative|agent|contact|collect)\b/i,
-      reply: "Once you reserve, you're auto-assigned a rep based on your area (Keisha — San Fernando/POS, Marlon — South/Marabella, Aaliyah — Central/Chaguanas). They reach out within 24 hours with collection points." },
+      reply: "Once you reserve, you're auto-assigned a band rep — Kerry Ramcharan covers San Fernando &amp; South (868-318-7031), and the Lux Team covers POS &amp; East (868-304-4476). Your rep reaches out within 24 hours with collection point options." },
     { match: /\b(size|sizing|fit|small|medium|large|xl|monokini)\b/i,
       reply: "Sizes run S/M/L/XL on both T-shirts and monokinis. Female J'Ouvert package includes a T-shirt PLUS Style I and Style II monokinis — all sized independently. Pick carefully — no exchanges on collection day." },
     { match: /\b(color|colour|black|white|pink|orange)\b/i,
@@ -2069,18 +2119,47 @@ label {
     { match: /\b(safe|security|medic)\b/i,
       reply: "Private security and roving medics from assembly to chip-home. Waterproof phone case in the J'Ouvert kit. Route pre-cleared with TTPS. Your emergency contact is in the system the moment you reserve." },
     { match: /\b(reserve|register|sign up|book)\b/i,
-      reply: "Scroll to the Reserve section — create your account, pick J'Ouvert or Blackout (or both), fill the form, submit. You'll get a Reservation ID instantly. Your rep handles the cash side." },
-    { match: /\b(drink|preference|alcohol)\b/i,
+      reply: "Scroll to the Reserve section — create your account, pick J'Ouvert or Blackout (or both), fill the form, submit. You'll get a Reservation ID instantly. Your rep handles payment in person." },
+    { match: /\b(drink|preference|alcohol|bar)\b/i,
       reply: "Drink preference is required for J'Ouvert (we stock based on it) and optional for Blackout. Both events have unlimited drinks — premium for J'Ouvert, full bar for Blackout." },
-    { match: /\b(hi|hello|hey|yow|good)\b/i,
-      reply: "Yow — welcome to Lux. Two experiences on Carnival Monday: J'Ouvert ($650) at sunrise, Blackout ($500) after dark. What you want to know about?" }
+    { match: /\b(what is j'?ouvert|first time|never (been|done)|new to)\b/i,
+      reply: "First time? Welcome — you go love it. J'Ouvert is the pre-dawn start of Carnival Monday — paint, powder, music trucks, the road before the sun come up. Lux runs a premium version: organized, secure, inclusive drinks. Just show up in clothes you don't mind getting paint on, and we handle the rest." },
+    { match: /\b(bring|wear|what should i|pack)\b/i,
+      reply: "For J'Ouvert: wear your Lux apparel and clothes/shoes you don't mind getting paint and powder on. Closed-toe footwear is smart for the road. We give you the waterproof phone case, towel and after-sun care in the kit. For Blackout: your neon Lux tee and comfortable shoes — we provide all the LED gear." },
+    { match: /\b(group|friends|together|crew|multiple people)\b/i,
+      reply: "Everyone in your crew creates their own account and reserves separately — that way each person picks their own size and apparel. You'll likely get assigned the same rep if you're all in the same area. Big group? Email the team and they'll help coordinate." },
+    { match: /\b(pickup|collect|collection|when do i get|costume ready)\b/i,
+      reply: "Costumes and kits are pre-made from your registration, then collected before Carnival. Your rep gives you collection point and date once payment is confirmed — and we email pickup details closer to launch. Remember: NO exchanging on collection day, so pick your sizes carefully." },
+    { match: /\b(monokini|one piece|swimsuit|what.*female)\b/i,
+      reply: "A monokini is a one-piece styled swimsuit-cut costume piece. The female J'Ouvert package includes a T-shirt PLUS two monokini styles (Style I and Style II) — each in Black or White, sizes S–XL. The male package is the T-shirt." },
+    { match: /\b(music|dj|truck|artist|band on the road|soca)\b/i,
+      reply: "Music trucks roll with both events — full sound on the road. DJ and artiste lineup is still being locked — follow @luxjouvert on Instagram for the announcement." },
+    { match: /\b(rain|weather|wet)\b/i,
+      reply: "J'Ouvert goes rain or shine — paint, powder and a lil rain is all part of the vibe. That's why the waterproof phone case is in your kit. The road runs as planned regardless." },
+    { match: /\b(forgot|reset|can'?t log ?in|password|locked out)\b/i,
+      reply: "If you can't log in, double-check the email you signed up with. Password reset isn't self-service yet — email support@luxjouvert.com from the address on your account and the team will sort it out fast." },
+    { match: /\b(lost|find my|reservation id|confirmation|receipt|proof)\b/i,
+      reply: "Your Reservation ID is in your confirmation email, and you can always see it by logging into luxjouvert.com — your reservations show under 'My Reservations' with live status. Lost the email? Email support@luxjouvert.com and we'll resend it." },
+    { match: /\b(age|18|old|minor|kid|child)\b/i,
+      reply: "Both events serve alcohol, so they're 18+. Bring valid ID. If you have a specific situation, email support@luxjouvert.com and the team will advise." },
+    { match: /\b(installment|deposit|plan|pay later|part payment)\b/i,
+      reply: "Yes — payment plans are available. Reserve online to lock your spot and Reservation ID, then arrange a deposit + installments with your rep. Your spot holds 7 days for the first payment. Status updates as each installment comes in." },
+    { match: /\b(hi|hello|hey|yow|good (morning|night|day)|wah)\b/i,
+      reply: "Yow — welcome to Lux. Two experiences on Carnival Monday 2027: J'Ouvert ($650) at sunrise, Blackout ($500) after dark. What you want to know about?" }
   ];
 
+  // When nothing in the KB matches, hand off to the support inbox.
   function alexFallback(text) {
     for (const entry of alexKB) {
       if (entry.match.test(text)) return entry.reply;
     }
-    return "Good question — I don't have that one on tap. Scroll to the FAQ for more, or email support@luxjouvert.com. Or ask me about packages, pricing, payment, sizes, or the schedule.";
+    const mailto = "mailto:support@luxjouvert.com?subject=" +
+      encodeURIComponent("Question about LUX J'Ouvert 2027") +
+      "&body=" + encodeURIComponent(text);
+    return "Yow, that one I can't answer straight off — but the Lux team go sort you out one time. " +
+      "Reach them at <a href=\"" + mailto + "\" style=\"color:var(--gold);font-weight:600;text-decoration:underline;\">support@luxjouvert.com</a> " +
+      "(tap that and your question's already typed in for you). " +
+      "Or ask me about packages, pricing, payment, sizes, the schedule, or what to bring — I have all that on hand.";
   }
 
   function addMsg(text, who = 'bot') {
