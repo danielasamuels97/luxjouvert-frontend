@@ -181,6 +181,10 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
 .nav-links a:hover { color: var(--white); }
 .nav-links a:hover::after { width: 100%; }
 
+/* Admin link — subtle on desktop, gold accent on mobile */
+.nav-links a.nav-admin { color: var(--gold); }
+.nav-links a.nav-admin::after { background: var(--gold); }
+
 .nav-cta {
   font-family: var(--font-display); font-weight: 600;
   padding: 10px 18px; border-radius: 999px;
@@ -199,6 +203,22 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
   .nav-links.open { display: flex; }
   .nav-toggle { display: inline-block; }
   .nav-cta { padding: 8px 14px; font-size: 11px; }
+
+  /* Admin link — highlighted in mobile menu */
+  .nav-links a.nav-admin {
+    margin-top: 8px;
+    padding: 12px 16px;
+    border: 1px solid var(--border-gold);
+    border-radius: 999px;
+    background: rgba(255,200,87,0.08);
+    color: var(--gold);
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 12px;
+  }
+  .nav-links a.nav-admin::after { display: none; }
 }
 
 /* ------------ Hero ------------ */
@@ -1014,6 +1034,7 @@ label {
       <a href="#reserve">Reserve</a>
       <a href="#schedule">Schedule</a>
       <a href="#faq">FAQ</a>
+      <a href="https://luxjouvert.com/admin.html" class="nav-admin">Admin</a>
     </div>
     <a href="#reserve" class="nav-cta">Reserve</a>
     <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
@@ -1645,7 +1666,7 @@ label {
     <div>
       <h5>Connect</h5>
       <ul>
-        <li><a href="https://instagram.com/" target="_blank" rel="noopener">Instagram</a></li>
+        <li><a href="https://www.instagram.com/luxjouvert/" target="_blank" rel="noopener">Instagram</a></li>
         <li><a href="https://tiktok.com/" target="_blank" rel="noopener">TikTok</a></li>
         <li><a href="mailto:support@luxjouvert.com">support@luxjouvert.com</a></li>
       </ul>
