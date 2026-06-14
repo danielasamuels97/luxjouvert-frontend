@@ -304,7 +304,7 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   <input type="email" id="gateEmail" placeholder="support@luxjouvert.com" autocomplete="username" />
   <input type="password" id="gatePass" placeholder="Password" autocomplete="current-password" />
   <button id="gateBtn">Sign In</button>
-  <div class="hint" id="gateHint">Admin: <b style="color:var(--pink-hot)">support@luxjouvert.com</b> </b></div>
+  <div class="hint" id="gateHint">Sign in with your Lux admin login (email + password).</div>
 </div>
 
 <div id="appRoot">
@@ -419,12 +419,16 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   // and compared against the hash here AND on the Apps Script backend.
   // Both ADMIN_PASS_HASH values (here AND in apps-script-backend.js) must match
   // when you change the password — keep them in lockstep.
-  const ADMIN_EMAIL = 'support@luxjouvert.com';
-  const ADMIN_PASS_HASH = 'fd2e1446a6e13dd19941d1e3115fb538b26261e4163696fb87dd23bcd55722b8'; // 'lux2027!admin'
-  const FALLBACK_PASS_HASHES = [
-    // SHA-256 of 'lux2027' — kept for grace-period rotation
-    'c43cd17767633ea927e6cfb7a7fcbfb5944f11d6cf5881cfb808fceaf3b9ec78'
+  // Admin accounts that may sign in. Each entry's passHash is SHA-256 of their
+  // password. These MUST match the ADMINS list in apps-script-backend.js.
+  const ADMINS = [
+    { email: 'support@luxjouvert.com', name: 'Lux Admin',       passHash: 'fd2e1446a6e13dd19941d1e3115fb538b26261e4163696fb87dd23bcd55722b8' }, // 'lux2027!admin'
+    { email: 'kerry@luxjouvert.com',   name: 'Kerry Ramcharan', passHash: '4a96ca42fb3b9e8fb75c00c1df88c9d658761071c65c5d7fa1720137a7eea6b9' }, // 'Kerry!Lux2027'
+    { email: 'saleem@luxjouvert.com',  name: 'Saleem Mohammed', passHash: '0ba269f57745cd800f6f211101b3dcbe44c8fdd61c44b47fcef78d3b03f1aacf' }  // 'Saleem!Lux2027'
   ];
+  // Kept for backward references (default sender / fallbacks).
+  const ADMIN_EMAIL = 'support@luxjouvert.com';
+  const ADMIN_PASS_HASH = ADMINS[0].passHash;
 
   async function api(action, params = {}) {
     if (!window.LUX_API_URL || window.LUX_API_URL.startsWith('PASTE_')) {
@@ -456,25 +460,19 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
     const email = gateEmailEl.value.trim().toLowerCase();
     const pass  = gatePassEl.value;
     if (!email || !pass) { toast('Email and password required'); return; }
-    if (email !== ADMIN_EMAIL) { toast('Not an admin account'); return; }
+    const admin = ADMINS.find(a => a.email === email);
+    if (!admin) { toast('Not an admin account'); return; }
     const hash = await sha256(pass);
-    if (hash !== ADMIN_PASS_HASH && !FALLBACK_PASS_HASHES.includes(hash)) {
-      toast('Wrong password');
-      return;
-    }
-    // Store the hash in sessionStorage so subsequent API calls can authenticate
-    // server-side. Only the active hash is accepted by the backend; if the user
-    // signed in with a fallback hash, warn them but still admit.
-    if (hash !== ADMIN_PASS_HASH) {
-      toast('Signed in with legacy password — rotate it soon');
-    }
+    if (hash !== admin.passHash) { toast('Wrong password'); return; }
+    // Store this admin's email + hash so subsequent API calls authenticate as them.
     sessionStorage.setItem('lux_rep_in', '1');
     sessionStorage.setItem('lux_rep_email', email);
-    sessionStorage.setItem('lux_rep_hash', ADMIN_PASS_HASH); // always send the canonical hash to backend
+    sessionStorage.setItem('lux_rep_hash', admin.passHash);
     gate.style.display = 'none';
     app.classList.add('show');
-    document.getElementById('repChip').innerHTML = `● ${email}`;
+    document.getElementById('repChip').innerHTML = `● ${admin.name}`;
     fetchAll().then(render);
+    loadReps();
   }
   if (sessionStorage.getItem('lux_rep_in')) {
     gate.style.display = 'none';
@@ -517,7 +515,9 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
     const all = load();
 
     // Populate rep filter
-    const reps = Array.from(new Set(all.map(r => r.rep?.name).filter(Boolean))).sort();
+    const fromSales = all.map(r => r.rep?.name).filter(Boolean);
+    const fromManaged = (_reps || []).filter(r => r.active !== false).map(r => r.name).filter(Boolean);
+    const reps = Array.from(new Set([...fromSales, ...fromManaged])).sort();
     const currentRep = filterRep.value;
     filterRep.innerHTML = '<option value="">All reps</option>' + reps.map(n => `<option${n === currentRep ? ' selected' : ''}>${n}</option>`).join('');
 
@@ -759,6 +759,17 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   // ---------- Band Reps management ----------
   document.getElementById('manageReps').addEventListener('click', openRepsModal);
 
+  // Cache of managed reps (from the `reps` tab) so they appear in the filter
+  // dropdown even before they've made a sale.
+  let _reps = [];
+  async function loadReps() {
+    try {
+      const res = await api('listReps', adminAuth());
+      _reps = res.reps || [];
+      render();   // refresh the rep filter with managed reps included
+    } catch (err) { /* backend action not deployed yet — ignore */ }
+  }
+
   function repLink(code) {
     return window.LUX_PUBLIC_URL.replace(/\/+$/, '') + '/?rep=' + encodeURIComponent(code || '');
   }
@@ -778,6 +789,8 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
     try {
       const res = await api('listReps', adminAuth());
       reps = res.reps || [];
+      _reps = reps;     // keep the dropdown cache in sync
+      render();         // reflect new/managed reps in the rep filter
     } catch (err) {
       // Backend action not deployed yet — fall back to reps inferred from sales.
       derived = true;
@@ -873,8 +886,10 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   // Initial load
   if (sessionStorage.getItem('lux_rep_in')) {
     const email = sessionStorage.getItem('lux_rep_email') || ADMIN_EMAIL;
-    document.getElementById('repChip').innerHTML = `● ${email}`;
+    const who = (ADMINS.find(a => a.email === email) || {}).name || email;
+    document.getElementById('repChip').innerHTML = `● ${who}`;
     fetchAll().then(render);
+    loadReps();
   }
 })();
 </script>
