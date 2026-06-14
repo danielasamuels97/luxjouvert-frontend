@@ -1748,6 +1748,20 @@ label {
   // ============================================================
   window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbykFZllYd9NI2b7xx97J2O29TO6fbwakkdiqEY3xvgEjuzr0AW-ZJ7Bi1sgvRySgCvS9g/exec';
 
+  // ---------- Rep referral capture ----------
+  // If the visitor arrives via a rep's link (?rep=CODE), remember it for this
+  // browser session so it rides along when they create a reservation — even
+  // after sign-up/login navigation strips the URL param.
+  (function () {
+    try {
+      const c = new URLSearchParams(location.search).get('rep');
+      if (c) sessionStorage.setItem('lux_ref', c.trim().toUpperCase().slice(0, 24));
+    } catch (e) {}
+  })();
+  function refRep() {
+    try { return sessionStorage.getItem('lux_ref') || ''; } catch (e) { return ''; }
+  }
+
   async function api(action, params = {}) {
     if (!window.LUX_API_URL || window.LUX_API_URL.startsWith('PASTE_')) {
       throw new Error('Backend not configured yet — set window.LUX_API_URL');
@@ -2054,6 +2068,7 @@ label {
         userEmail: session.email,
         sessionToken: session.sessionToken,
         event,
+        repCode: refRep(),
         ...formData
       });
 
