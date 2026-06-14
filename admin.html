@@ -365,6 +365,7 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   </select>
   <button class="btn-sm btn-view" id="refreshBtn">Refresh ↻</button>
   <button class="btn-sm btn-view" id="exportCsv">Export CSV</button>
+  <button class="btn-sm btn-view" id="manageReps">Manage Reps</button>
   <div class="count" id="countLabel">0 reservations</div>
 </div>
 
@@ -410,6 +411,8 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
   // Web app URL between the quotes below. MUST match the URL in index.html.
   // ============================================================
   window.LUX_API_URL = window.LUX_API_URL || 'https://script.google.com/macros/s/AKfycbykFZllYd9NI2b7xx97J2O29TO6fbwakkdiqEY3xvgEjuzr0AW-ZJ7Bi1sgvRySgCvS9g/exec';
+  // Public reservation site base — used to build each rep's shareable referral link.
+  window.LUX_PUBLIC_URL = window.LUX_PUBLIC_URL || 'https://luxjouvert.com';
 
   // ---------- Gate ----------
   // Admin login uses email + password. Password is SHA-256 hashed client-side
@@ -752,6 +755,120 @@ tbody tr:hover { background: rgba(255,60,172,0.04); }
     e.target.disabled = false;
     toast('Refreshed');
   });
+
+  // ---------- Band Reps management ----------
+  document.getElementById('manageReps').addEventListener('click', openRepsModal);
+
+  function repLink(code) {
+    return window.LUX_PUBLIC_URL.replace(/\/+$/, '') + '/?rep=' + encodeURIComponent(code || '');
+  }
+  // Live sales tally for a rep, computed from the cached reservations.
+  function repTally(rep) {
+    const arr = load();
+    const mine = arr.filter(r => (rep.code && r.rep?.code === rep.code) || (r.rep?.name && r.rep.name === rep.name));
+    const paid = mine.filter(r => r.status === 'PAID');
+    const collected = paid.reduce((s, r) => s + (r.total || 0), 0);
+    return { total: mine.length, paid: paid.length, collected };
+  }
+
+  async function openRepsModal() {
+    modalBox.innerHTML = '<h3>Band Reps</h3><div style="opacity:.7;font-size:13px">Loading reps…</div>';
+    modalBd.classList.add('open');
+    let reps = [], derived = false;
+    try {
+      const res = await api('listReps', adminAuth());
+      reps = res.reps || [];
+    } catch (err) {
+      // Backend action not deployed yet — fall back to reps inferred from sales.
+      derived = true;
+      const names = Array.from(new Set(load().map(r => r.rep?.name).filter(Boolean))).sort();
+      reps = names.map(n => {
+        const ex = load().find(r => r.rep?.name === n)?.rep || {};
+        return { name: n, code: ex.code || '', zone: ex.zone || '', active: true };
+      });
+    }
+    renderRepsModal(reps, derived);
+  }
+
+  function renderRepsModal(reps, derived) {
+    const rows = reps.length ? reps.map(rep => {
+      const t = repTally(rep);
+      return `
+        <div class="row" style="align-items:flex-start;gap:10px;padding:10px 0">
+          <span class="v" style="flex:1;text-align:left">
+            <b>${escape(rep.name)}</b>${rep.active === false ? ' <span style="color:#ff8a8a">(off)</span>' : ''}<br>
+            <span style="font-size:12px;color:var(--gold)">${escape(rep.zone || '—')}</span>
+            <span style="font-size:12px;opacity:.7"> · code ${escape(rep.code || '—')}</span><br>
+            <span style="font-size:12px;opacity:.75">${t.paid} paid / ${t.total} total · $${t.collected.toLocaleString()} TTD</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            ${rep.code ? `<button class="btn-sm btn-view" data-copy="${escape(rep.code)}">Copy link</button>` : ''}
+            <button class="btn-sm btn-ghost" data-toggle="${escape(rep.code || rep.name)}" data-active="${rep.active === false ? '1' : '0'}">${rep.active === false ? 'Reactivate' : 'Deactivate'}</button>
+          </span>
+        </div>`;
+    }).join('') : '<div style="opacity:.7;font-size:13px;padding:8px 0">No reps yet — add your first below.</div>';
+
+    modalBox.innerHTML = `
+      <style>
+        #modalBox .rep-form input{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--white);font:inherit}
+        #modalBox .rep-form input:focus{outline:none;border-color:var(--gold)}
+      </style>
+      <h3>Band Reps</h3>
+      ${derived ? '<div style="background:rgba(255,200,87,.08);border:1px solid rgba(255,200,87,.3);border-radius:8px;padding:9px 11px;font-size:12px;margin-bottom:12px">Showing reps from existing sales. To add &amp; manage reps, deploy the <b>addRep / listReps / setRepActive</b> actions in your Apps Script (snippet provided with this file).</div>' : ''}
+      <div class="section-divider">Add a rep</div>
+      <div class="rep-form" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <input id="rpName" placeholder="Rep name *" style="grid-column:1/-1">
+        <input id="rpZone" placeholder="Zone / area (e.g. South)">
+        <input id="rpCode" placeholder="Code (auto if blank)">
+        <input id="rpPhone" placeholder="Phone (optional)" style="grid-column:1/-1">
+      </div>
+      <div class="modal-actions" style="margin-top:10px">
+        <button class="btn-md btn-confirm" id="rpAdd">Add Rep</button>
+      </div>
+      <div class="section-divider">Reps (${reps.length})</div>
+      ${rows}
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="btn-md btn-ghost" data-close>Close</button>
+      </div>
+    `;
+    modalBox.querySelector('[data-close]').addEventListener('click', () => modalBd.classList.remove('open'));
+    modalBox.querySelector('#rpAdd').addEventListener('click', submitRep);
+    modalBox.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+      const link = repLink(b.getAttribute('data-copy'));
+      const done = () => toast('Link copied: ' + link);
+      if (navigator.clipboard) navigator.clipboard.writeText(link).then(done).catch(() => toast(link));
+      else toast(link);
+    }));
+    modalBox.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
+      setRepActive(b.getAttribute('data-toggle'), b.getAttribute('data-active') === '1');
+    }));
+  }
+
+  async function submitRep() {
+    const name = document.getElementById('rpName').value.trim();
+    const zone = document.getElementById('rpZone').value.trim();
+    let code = document.getElementById('rpCode').value.trim().toUpperCase();
+    const phone = document.getElementById('rpPhone').value.trim();
+    if (!name) { toast('Rep name is required'); return; }
+    if (!code) code = name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 16);
+    try {
+      await api('addRep', { ...adminAuth(), name, zone, code, phone });
+      toast('Rep added: ' + name);
+      openRepsModal();
+    } catch (err) {
+      toast('Add rep failed: ' + err.message);
+    }
+  }
+
+  async function setRepActive(code, active) {
+    try {
+      await api('setRepActive', { ...adminAuth(), code, active });
+      toast(active ? 'Rep reactivated' : 'Rep deactivated');
+      openRepsModal();
+    } catch (err) {
+      toast('Update failed: ' + err.message);
+    }
+  }
 
   // Initial load
   if (sessionStorage.getItem('lux_rep_in')) {
